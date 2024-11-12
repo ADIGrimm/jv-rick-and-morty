@@ -1,34 +1,20 @@
 package mate.academy.rickandmorty.mapper;
 
-import mate.academy.rickandmorty.dto.ApiDto;
+import mate.academy.rickandmorty.config.MapperConfig;
 import mate.academy.rickandmorty.dto.CharacterDto;
+import mate.academy.rickandmorty.dto.CharacterExternalDto;
 import mate.academy.rickandmorty.model.Character;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class CharacterMapper {
-    public CharacterDto toDto(Character character) {
-        if (character == null) {
-            return null;
-        }
-        CharacterDto characterDto = new CharacterDto();
-        characterDto.setId(character.getId());
-        characterDto.setName(character.getName());
-        characterDto.setStatus(character.getStatus());
-        characterDto.setGender(character.getGender());
-        characterDto.setInternalId(character.getInternalId());
-        return characterDto;
-    }
+@Mapper(config = MapperConfig.class)
+public interface CharacterMapper {
+    CharacterDto toDto(Character character);
 
-    public Character toEntity(ApiDto apiDto) {
-        if (apiDto == null) {
-            return null;
-        }
-        Character character = new Character();
-        character.setName(apiDto.getName());
-        character.setStatus(apiDto.getStatus());
-        character.setGender(apiDto.getGender());
-        character.setInternalId(String.valueOf(apiDto.getId()));
-        return character;
+    @Mapping(target = "internalId", expression = "java(generateInternalId(characterResponseDto))")
+    Character toEntity(CharacterExternalDto characterResponseDto);
+
+    default String generateInternalId(CharacterExternalDto dto) {
+        return dto.getId() != null ? String.valueOf(dto.getId()) : "default-id";
     }
 }

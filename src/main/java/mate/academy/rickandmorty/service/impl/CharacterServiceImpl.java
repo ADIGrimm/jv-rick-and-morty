@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import mate.academy.rickandmorty.dto.ApiDto;
-import mate.academy.rickandmorty.dto.ApiResponse;
 import mate.academy.rickandmorty.dto.CharacterDto;
+import mate.academy.rickandmorty.dto.CharacterExternalDto;
+import mate.academy.rickandmorty.dto.CharacterResponseDto;
 import mate.academy.rickandmorty.mapper.CharacterMapper;
 import mate.academy.rickandmorty.model.Character;
 import mate.academy.rickandmorty.repository.CharacterRepository;
@@ -21,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 @Service
 @RequiredArgsConstructor
 public class CharacterServiceImpl implements CharacterService {
+    public static final String URL = "https://rickandmortyapi.com/api/character?page=";
     public static final Long CHARACTER_MAX = 826L;
     private final CharacterMapper characterMapper;
     private final CharacterRepository characterRepository;
@@ -39,31 +40,29 @@ public class CharacterServiceImpl implements CharacterService {
     }
 
     @Override
-    public List<ApiDto> fetchAllCharacters() {
-        String url = "https://rickandmortyapi.com/api/character?page=";
-        List<ApiDto> allCharacters = new ArrayList<>();
+    public List<CharacterExternalDto> fetchAllCharacters() {
+        List<CharacterExternalDto> allCharacters = new ArrayList<>();
         int page = 1;
-        ApiResponse response;
-
+        CharacterResponseDto response;
         do {
-            ResponseEntity<ApiResponse> apiResponse = restTemplate
-                    .getForEntity(url + page, ApiResponse.class);
+            ResponseEntity<CharacterResponseDto> apiResponse = restTemplate
+                    .getForEntity(URL + page, CharacterResponseDto.class);
             response = apiResponse.getBody();
             if (response != null && response.getResults() != null) {
                 allCharacters.addAll(response.getResults());
             }
+            String nextPageUrl = (String) response.getInfo().get("next");
             page++;
-        } while (response != null && response.getInfo().getNext() != null);
-
+        } while (response != null && response.getInfo().get("next") != null);
         return allCharacters;
     }
 
     @PostConstruct
     @Override
     public void saveAllCharactersToDb() {
-        List<ApiDto> characters = fetchAllCharacters();
+        List<CharacterExternalDto> characters = fetchAllCharacters();
         List<Character> characterEntities = characters.stream()
-                .map((ApiDto characterDto) -> characterMapper.toEntity(characterDto))
+                .map((CharacterExternalDto characterDto) -> characterMapper.toEntity(characterDto))
                 .collect(Collectors.toList());
         characterRepository.saveAll(characterEntities);
     }
